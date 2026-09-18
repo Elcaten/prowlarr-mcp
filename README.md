@@ -53,6 +53,7 @@ claude mcp add prowlarr \
 | `PROWLARR_URL` | yes | - |
 | `PROWLARR_API_KEY` | yes* | none (no auth header sent if unset) |
 | `PROWLARR_MCP_TOKEN` | when HTTP | - |
+| `PROWLARR_MCP_GROUPS` | no | all groups |
 | `FASTMCP_TRANSPORT` | no | `stdio` |
 | `FASTMCP_HOST` | no | `127.0.0.1` |
 | `FASTMCP_PORT` | no | `8000` |
@@ -67,6 +68,9 @@ HTTP endpoint (`Authorization: Bearer <token>`). It is required when
 for stdio (local `claude mcp add` keeps working without it). HTTP listens
 at `http://$FASTMCP_HOST:$FASTMCP_PORT/mcp`. A FastMCP client passes the
 token as `auth="<token>"` (no `Bearer ` prefix).
+
+`PROWLARR_MCP_GROUPS` limits which portmanteau tools are registered, e.g.
+`prowlarr_search,prowlarr_history`. Unset or empty registers all 10 groups.
 
 ```bash
 FASTMCP_TRANSPORT=http \

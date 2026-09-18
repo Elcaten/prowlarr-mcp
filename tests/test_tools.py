@@ -431,6 +431,21 @@ async def test_http_mcp_accepts_valid_bearer(mcp_http_token):
 
 # --- portmanteau grouping safety net ------------------------------------------
 
+def test_enabled_groups_empty_means_all(monkeypatch):
+    monkeypatch.delenv("PROWLARR_MCP_GROUPS", raising=False)
+    assert prowlarr_mcp._enabled_groups() == prowlarr_mcp._GROUPS
+    monkeypatch.setenv("PROWLARR_MCP_GROUPS", "")
+    assert prowlarr_mcp._enabled_groups() == prowlarr_mcp._GROUPS
+
+
+def test_enabled_groups_filters_to_named_groups(monkeypatch):
+    monkeypatch.setenv("PROWLARR_MCP_GROUPS", "prowlarr_search, prowlarr_history")
+    enabled = prowlarr_mcp._enabled_groups()
+    assert list(enabled) == ["prowlarr_search", "prowlarr_history"]
+    assert enabled["prowlarr_search"] == prowlarr_mcp._GROUPS["prowlarr_search"]
+    assert enabled["prowlarr_history"] == prowlarr_mcp._GROUPS["prowlarr_history"]
+
+
 def test_all_tools_grouped():
     """Every tool in TOOLS must land in exactly one portmanteau group - this
     is the safety net for the group-tool consolidation."""

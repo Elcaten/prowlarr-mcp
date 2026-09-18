@@ -1257,6 +1257,13 @@ def _register_group(
     )
 
 
+def _enabled_groups() -> dict[str, tuple[str, ...]]:
+    raw = os.environ.get("PROWLARR_MCP_GROUPS", "").strip()
+    if not raw:
+        return _GROUPS
+    return {name: _GROUPS[name] for name in (n.strip() for n in raw.split(",")) if name}
+
+
 def _register_tools() -> None:
     ns = globals()
     readonly_names: set[str] = {
@@ -1319,7 +1326,13 @@ def _register_tools() -> None:
         "prowlarr_search_releases",
         "prowlarr_system_status",
     }
-    for group, names in _GROUPS.items():
+    groups = _enabled_groups()
+    raw = os.environ.get("PROWLARR_MCP_GROUPS")
+    print(
+        f"prowlarr-mcp PROWLARR_MCP_GROUPS={raw!r} -> {', '.join(groups)}",
+        file=sys.stderr,
+    )
+    for group, names in groups.items():
         _register_group(group, names, ns, readonly_names)
 
 
@@ -1357,6 +1370,10 @@ def main() -> None:
         raise SystemExit(1)
     _client = build_client(url, os.environ.get("PROWLARR_API_KEY"))
     _configure_mcp_auth(fastmcp.settings.transport, os.environ.get("PROWLARR_MCP_TOKEN"))
+    print(
+        f"prowlarr-mcp PROWLARR_MCP_GROUPS={os.environ.get('PROWLARR_MCP_GROUPS')!r}",
+        file=sys.stderr,
+    )
     mcp.run()
 
 
