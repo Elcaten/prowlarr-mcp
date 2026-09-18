@@ -52,10 +52,31 @@ claude mcp add prowlarr \
 |---|---|---|
 | `PROWLARR_URL` | yes | - |
 | `PROWLARR_API_KEY` | yes* | none (no auth header sent if unset) |
+| `PROWLARR_MCP_TOKEN` | when HTTP | - |
+| `FASTMCP_TRANSPORT` | no | `stdio` |
+| `FASTMCP_HOST` | no | `127.0.0.1` |
+| `FASTMCP_PORT` | no | `8000` |
 
-\* Every API endpoint requires auth; practically you must set it, but the
-server still starts without one so errors surface from the API rather than at
-startup.
+\* Every Prowlarr API endpoint requires auth; practically you must set
+`PROWLARR_API_KEY`, but the server still starts without one so errors
+surface from the API rather than at startup.
+
+`PROWLARR_MCP_TOKEN` is a separate layer: FastMCP bearer auth on the MCP
+HTTP endpoint (`Authorization: Bearer <token>`). It is required when
+`FASTMCP_TRANSPORT` is `http`, `sse`, or `streamable-http`, and ignored
+for stdio (local `claude mcp add` keeps working without it). HTTP listens
+at `http://$FASTMCP_HOST:$FASTMCP_PORT/mcp`. A FastMCP client passes the
+token as `auth="<token>"` (no `Bearer ` prefix).
+
+```bash
+FASTMCP_TRANSPORT=http \
+FASTMCP_HOST=127.0.0.1 \
+FASTMCP_PORT=8000 \
+PROWLARR_MCP_TOKEN=<mcp-token> \
+PROWLARR_URL=http://localhost:9696 \
+PROWLARR_API_KEY=<key> \
+  prowlarr-mcp
+```
 
 ## Tools
 

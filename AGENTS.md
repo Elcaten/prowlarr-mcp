@@ -40,6 +40,11 @@ The Prowlarr API is not read-only: most operations are NOT read-only. Convention
 - POST/PUT operations (create/update/test/action/command): originally no hints (state-changing but non-destructive).
 - Auth is the `X-Api-Key` header. `build_client` targets the server root; `_req`
   prefixes `/api/v1` to relative paths, and `/api` + `/ping` are used verbatim.
+- MCP-layer bearer auth (`PROWLARR_MCP_TOKEN` → FastMCP `StaticTokenVerifier`)
+  applies only to HTTP transports. `main()` attaches it when
+  `FASTMCP_TRANSPORT` is `http`/`sse`/`streamable-http` and refuses to start
+  without the token. STDIO skips it. Do not set `mcp.auth` at import time —
+  in-memory tests would then require a bearer token.
 Keep the whole server in `prowlarr_mcp.py` unless it outgrows it.
 
 ## Portmanteau registration — **do not go back to one tool per endpoint**

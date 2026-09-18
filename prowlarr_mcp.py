@@ -6,11 +6,12 @@ portmanteau tool (e.g. prowlarr_indexers, prowlarr_applications) takes an
 `operation` enum plus an `arguments` dict; see AGENTS.md for the rationale
 (a 100+-tool server blows the MCP context budget on session start).
 
-Auth is the X-Api-Key header -- generate the key in Prowlarr Settings >
-General. A group tool is marked readOnlyHint=True only when every operation
-in it was originally a GET tool; mixed groups carry no hints. Write
-operations take a `body` JSON object; list a resource's schema first to
-discover its fields.
+Prowlarr auth is the X-Api-Key header -- generate the key in Prowlarr
+Settings > General. MCP-layer bearer auth (PROWLARR_MCP_TOKEN) applies only
+to HTTP transports; stdio skips it. A group tool is marked
+readOnlyHint=True only when every operation in it was originally a GET
+tool; mixed groups carry no hints. Write operations take a `body` JSON
+object; list a resource's schema first to discover its fields.
 
 Paths given to _req that already start with `/` (like /api and /ping) are used
 verbatim against the server root; everything else is prefixed with /api/v1.
@@ -26,9 +27,11 @@ import sys
 from typing import Any, Literal
 from urllib.parse import quote
 
+import fastmcp
 import httpx
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
+from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 from fastmcp.tools import Tool
 from mcp.types import ToolAnnotations
 
@@ -1323,6 +1326,26 @@ def _register_tools() -> None:
 _register_tools()
 
 
+_HTTP_TRANSPORTS = {"http", "sse", "streamable-http"}
+
+
+def _configure_mcp_auth(transport: str, token: str | None) -> None:
+    """Attach StaticTokenVerifier for HTTP transports; no-op for stdio.
+
+    Must not run at import time: in-memory tests talk to this same `mcp`
+    instance, and FastMCP enforces `mcp.auth` on every non-stdio transport.
+    """
+    if transport not in _HTTP_TRANSPORTS:
+        return
+    if not token:
+        print(
+            "PROWLARR_MCP_TOKEN environment variable is required for HTTP transport",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+    mcp.auth = StaticTokenVerifier(tokens={token: {"client_id": "prowlarr-mcp"}})
+
+
 def main() -> None:
     global _client
     url = os.environ.get("PROWLARR_URL")
@@ -1333,6 +1356,7 @@ def main() -> None:
         )
         raise SystemExit(1)
     _client = build_client(url, os.environ.get("PROWLARR_API_KEY"))
+    _configure_mcp_auth(fastmcp.settings.transport, os.environ.get("PROWLARR_MCP_TOKEN"))
     mcp.run()
 
 

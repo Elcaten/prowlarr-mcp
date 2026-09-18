@@ -13,6 +13,7 @@ import pytest
 import pytest_asyncio
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 
 import prowlarr_mcp
 
@@ -341,6 +342,91 @@ def test_main_requires_prowlarr_url(monkeypatch):
     monkeypatch.delenv("PROWLARR_URL", raising=False)
     with pytest.raises(SystemExit):
         prowlarr_mcp.main()
+
+
+# --- MCP HTTP token auth ------------------------------------------------------
+
+def test_stdio_does_not_attach_auth():
+    prowlarr_mcp._configure_mcp_auth("stdio", "secret-token")
+    assert prowlarr_mcp.mcp.auth is None
+
+
+def test_http_without_token_exits():
+    with pytest.raises(SystemExit):
+        prowlarr_mcp._configure_mcp_auth("http", None)
+
+
+def test_http_with_token_attaches_static_verifier():
+    try:
+        prowlarr_mcp._configure_mcp_auth("http", "secret-token")
+        assert isinstance(prowlarr_mcp.mcp.auth, StaticTokenVerifier)
+        assert "secret-token" in prowlarr_mcp.mcp.auth.tokens
+    finally:
+        prowlarr_mcp.mcp.auth = None
+
+
+def test_main_http_requires_mcp_token(monkeypatch):
+    import fastmcp
+
+    monkeypatch.setenv("PROWLARR_URL", "http://localhost:9696")
+    monkeypatch.delenv("PROWLARR_MCP_TOKEN", raising=False)
+    monkeypatch.setattr(fastmcp.settings, "transport", "http")
+    monkeypatch.setattr(prowlarr_mcp.mcp, "run", lambda: None)
+    with pytest.raises(SystemExit):
+        prowlarr_mcp.main()
+    prowlarr_mcp.mcp.auth = None
+    if prowlarr_mcp._client is not None:
+        import asyncio
+
+        asyncio.run(prowlarr_mcp._client.aclose())
+        prowlarr_mcp._client = None
+
+
+@pytest.fixture
+def mcp_http_token():
+    token = "test-mcp-token"
+    previous = prowlarr_mcp.mcp.auth
+    prowlarr_mcp._configure_mcp_auth("http", token)
+    yield token
+    prowlarr_mcp.mcp.auth = previous
+
+
+async def _asgi_request(app, method, path, **kwargs):
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        return await client.request(method, path, **kwargs)
+
+
+async def test_http_mcp_rejects_missing_bearer(mcp_http_token):
+    r = await _asgi_request(prowlarr_mcp.mcp.http_app(), "GET", "/mcp")
+    assert r.status_code == 401
+
+
+async def test_http_mcp_rejects_invalid_bearer(mcp_http_token):
+    r = await _asgi_request(
+        prowlarr_mcp.mcp.http_app(),
+        "GET",
+        "/mcp",
+        headers={"Authorization": "Bearer wrong-token"},
+    )
+    assert r.status_code == 401
+
+
+async def test_http_mcp_accepts_valid_bearer(mcp_http_token):
+    app = prowlarr_mcp.mcp.http_app()
+    async with app.router.lifespan_context(app):
+        r = await _asgi_request(
+            app,
+            "POST",
+            "/mcp",
+            headers={
+                "Authorization": f"Bearer {mcp_http_token}",
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json",
+            },
+            json={"jsonrpc": "2.0", "id": 1, "method": "ping"},
+        )
+    assert r.status_code != 401
 
 
 # --- portmanteau grouping safety net ------------------------------------------
