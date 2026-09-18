@@ -1,6 +1,5 @@
 # prowlarr-mcp
 
-Part of the [arr-mcps](https://github.com/arr-mcps/arr-mcps) collection.
 MCP server exposing [Prowlarr](https://github.com/Prowlarr/Prowlarr)'s API v1
 (REST) as tools, so an LLM can manage your indexers, applications, download
 clients, indexer proxies, notifications, tags, and custom filters — plus run
@@ -16,7 +15,7 @@ Every `/api/v1` endpoint requires it, sent as the `X-Api-Key` header.
 
 ## Install
 
-Download a wheel from the [latest release](https://github.com/arr-mcps/prowlarr-mcp/releases/latest)
+Download a wheel from the [latest release](https://github.com/Elcaten/prowlarr-mcp/releases/latest)
 and install it as a `uv` tool (no repo checkout needed):
 
 ```bash
@@ -43,7 +42,7 @@ docker run --rm -p 127.0.0.1:8080:8080 \
   -e PROWLARR_URL=http://prowlarr:9696 \
   -e PROWLARR_API_KEY=<key> \
   -e PROWLARR_MCP_TOKEN=<mcp-token> \
-  ghcr.io/arr-mcps/prowlarr-mcp:latest
+  ghcr.io/elcaten/prowlarr-mcp:latest
 ```
 
 Or with [compose.yaml](compose.yaml) (binds `127.0.0.1:8080` so Caddy on the
@@ -57,7 +56,7 @@ docker compose up -d
 ```yaml
 services:
   prowlarr-mcp:
-    image: ghcr.io/arr-mcps/prowlarr-mcp:latest
+    image: ghcr.io/elcaten/prowlarr-mcp:latest
     restart: unless-stopped
     env_file: .env
     ports:
@@ -68,9 +67,7 @@ services:
       FASTMCP_PORT: "8080"
 ```
 
-Optional: `PROWLARR_MCP_GROUPS=prowlarr_search,prowlarr_history` in `.env`. The
-first image from a public repo may stay private on GHCR until you set the
-package public.
+Optional: `PROWLARR_MCP_GROUPS=prowlarr_search,prowlarr_history` in `.env`.
 
 ### From source
 
@@ -167,7 +164,7 @@ make help  # list all commands
 | `make clean` | Remove build artifacts |
 
 The release workflow (`.github/workflows/release.yml`) builds and publishes to
-[Releases](https://github.com/arr-mcps/prowlarr-mcp/releases) whenever a `v*`
+[Releases](https://github.com/Elcaten/prowlarr-mcp/releases) whenever a `v*`
 tag is pushed - so the usual flow is `make bump-patch`, commit, then tag and
 push.
 

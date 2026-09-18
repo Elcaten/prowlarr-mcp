@@ -1,6 +1,6 @@
 services:
   prowlarr-mcp:
-    image: ghcr.io/arr-mcps/prowlarr-mcp:latest
+    image: ghcr.io/elcaten/prowlarr-mcp:latest
     restart: unless-stopped
     env_file: .env
     ports:
