@@ -32,6 +32,46 @@ claude mcp add prowlarr \
   -- prowlarr-mcp
 ```
 
+### Docker
+
+Images are published to GHCR on push to `main` (`:latest`) and on `v*` tags
+(`:0.2.1`, `:0.2`). The container speaks HTTP on `0.0.0.0:8080/mcp`. Do not set
+`FASTMCP_HOST=127.0.0.1` in the container — that would only listen inside it.
+
+```bash
+docker run --rm -p 127.0.0.1:8080:8080 \
+  -e PROWLARR_URL=http://prowlarr:9696 \
+  -e PROWLARR_API_KEY=<key> \
+  -e PROWLARR_MCP_TOKEN=<mcp-token> \
+  ghcr.io/arr-mcps/prowlarr-mcp:latest
+```
+
+Or with [compose.yaml](compose.yaml) (binds `127.0.0.1:8080` so Caddy on the
+host can proxy it without publishing to the internet):
+
+```bash
+cp .env.example .env   # set PROWLARR_URL, PROWLARR_API_KEY, PROWLARR_MCP_TOKEN
+docker compose up -d
+```
+
+```yaml
+services:
+  prowlarr-mcp:
+    image: ghcr.io/arr-mcps/prowlarr-mcp:latest
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      FASTMCP_TRANSPORT: http
+      FASTMCP_HOST: 0.0.0.0
+      FASTMCP_PORT: "8080"
+```
+
+Optional: `PROWLARR_MCP_GROUPS=prowlarr_search,prowlarr_history` in `.env`. The
+first image from a public repo may stay private on GHCR until you set the
+package public.
+
 ### From source
 
 ```bash

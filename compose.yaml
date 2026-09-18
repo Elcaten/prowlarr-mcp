@@ -1,0 +1,11 @@
+services:
+  prowlarr-mcp:
+    image: ghcr.io/arr-mcps/prowlarr-mcp:latest
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      FASTMCP_TRANSPORT: http
+      FASTMCP_HOST: 0.0.0.0
+      FASTMCP_PORT: "8080"

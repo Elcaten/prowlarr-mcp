@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+.env
+.env.example
+tests
+dist
+.pytest_cache
+__pycache__
+*.pyc
+.cursor
+AGENTS.md
+Makefile
+cliff.toml
+.git*
